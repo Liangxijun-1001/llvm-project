@@ -4489,6 +4489,10 @@ renderDebugOptions(const ToolChain &TC, const Driver &D, const llvm::Triple &T,
 
   renderDwarfFormat(D, T, Args, CmdArgs, EffectiveDWARFVersion);
   RenderDebugInfoCompressionArgs(Args, CmdArgs, D, TC);
+
+  bool EmitDwarfForAMDGCN = EmitDwarf && T.isAMDGCN();
+  if (EmitDwarfForAMDGCN)
+    CmdArgs.append({"-mllvm", "-amdgpu-spill-cfi-saved-regs"});
 }
 
 static void ProcessVSRuntimeLibrary(const ArgList &Args,
