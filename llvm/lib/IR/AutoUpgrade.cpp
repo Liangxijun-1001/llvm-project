@@ -4587,7 +4587,9 @@ bool llvm::UpgradeDebugInfo(Module &M) {
     return false;
 
   unsigned Version = getDebugMetadataVersionFromModule(M);
-  if (Version == DEBUG_METADATA_VERSION) {
+  bool VersionSupported = Version == DEBUG_METADATA_VERSION ||
+                          Version == DEBUG_METADATA_VERSION_HETEROGENEOUS_DWARF;
+  if (VersionSupported) {
     bool BrokenDebugInfo = false;
     if (verifyModule(M, &llvm::errs(), &BrokenDebugInfo))
       report_fatal_error("Broken module found, compilation aborted!");
@@ -4601,7 +4603,7 @@ bool llvm::UpgradeDebugInfo(Module &M) {
     }
   }
   bool Modified = StripDebugInfo(M);
-  if (Modified && Version != DEBUG_METADATA_VERSION) {
+  if (Modified && !VersionSupported) {
     // Diagnose a version mismatch.
     DiagnosticInfoDebugMetadataVersion DiagVersion(M, Version);
     M.getContext().diagnose(DiagVersion);
