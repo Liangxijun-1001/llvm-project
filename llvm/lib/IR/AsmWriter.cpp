@@ -1697,6 +1697,7 @@ struct MDFieldPrinter {
   void printEmissionKind(StringRef Name, DICompileUnit::DebugEmissionKind EK);
   void printNameTableKind(StringRef Name,
                           DICompileUnit::DebugNameTableKind NTK);
+  void printMemorySpace(StringRef Name, dwarf::MemorySpace MS);
   template <class RangeT> void printMetadataList(StringRef Name, RangeT Range);
 };
 
@@ -1825,6 +1826,20 @@ void MDFieldPrinter::printDISPFlags(StringRef Name,
 void MDFieldPrinter::printEmissionKind(StringRef Name,
                                        DICompileUnit::DebugEmissionKind EK) {
   Out << FS << Name << ": " << DICompileUnit::emissionKindString(EK);
+}
+
+void MDFieldPrinter::printMemorySpace(StringRef Name, dwarf::MemorySpace MS) {
+  if (MS == dwarf::DW_MSPACE_LLVM_none)
+    return;
+
+  StringRef MSStr = dwarf::MemorySpaceString(MS);
+
+  Out << FS << Name << ": ";
+  if (MSStr.empty()) {
+    Out << static_cast<unsigned>(MS);
+  } else {
+    Out << MSStr;
+  }
 }
 
 void MDFieldPrinter::printNameTableKind(StringRef Name,
@@ -2045,8 +2060,9 @@ static void writeDIDerivedType(raw_ostream &Out, const DIDerivedType *N,
   Printer.printDIFlags("flags", N->getFlags());
   Printer.printMetadata("extraData", N->getRawExtraData());
   if (const auto &DWARFAddressSpace = N->getDWARFAddressSpace())
-    Printer.printInt("dwarfAddressSpace", *DWARFAddressSpace,
+    Printer.printInt("addressSpace", *DWARFAddressSpace,
                      /* ShouldSkipZero */ false);
+  Printer.printMemorySpace("memorySpace", N->getDWARFMemorySpace());
   Printer.printMetadata("annotations", N->getRawAnnotations());
   Out << ")";
 }
@@ -2288,6 +2304,7 @@ static void writeDIGlobalVariable(raw_ostream &Out, const DIGlobalVariable *N,
   Printer.printBool("isDefinition", N->isDefinition());
   Printer.printMetadata("declaration", N->getRawStaticDataMemberDeclaration());
   Printer.printMetadata("templateParams", N->getRawTemplateParams());
+  Printer.printMemorySpace("memorySpace", N->getDWARFMemorySpace());
   Printer.printInt("align", N->getAlignInBits());
   Printer.printMetadata("annotations", N->getRawAnnotations());
   Out << ")";
@@ -2304,6 +2321,7 @@ static void writeDILocalVariable(raw_ostream &Out, const DILocalVariable *N,
   Printer.printInt("line", N->getLine());
   Printer.printMetadata("type", N->getRawType());
   Printer.printDIFlags("flags", N->getFlags());
+  Printer.printMemorySpace("memorySpace", N->getDWARFMemorySpace());
   Printer.printInt("align", N->getAlignInBits());
   Printer.printMetadata("annotations", N->getRawAnnotations());
   Out << ")";
