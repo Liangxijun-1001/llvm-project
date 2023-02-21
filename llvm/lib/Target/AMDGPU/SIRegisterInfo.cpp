@@ -716,9 +716,6 @@ BitVector SIRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   for (MCPhysReg Reg : MFI->getVGPRSpillAGPRs())
     reserveRegisterTuples(Reserved, Reg);
 
-  for (auto Reg : MFI->getSGPRSpillVGPRs())
-    reserveRegisterTuples(Reserved, Reg);
-
   return Reserved;
 }
 
@@ -1793,15 +1790,15 @@ void SIRegisterInfo::buildVGPRSpillLoadStore(SGPRSpillBuilder &SB, int Index,
   }
 }
 
-bool SIRegisterInfo::spillSGPR(MachineBasicBlock::iterator MI,
-                               int Index,
-                               RegScavenger *RS,
-                               SlotIndexes *Indexes,
-                               LiveIntervals *LIS,
-                               bool OnlyToVGPR, bool NeedsCFI) const {
+bool SIRegisterInfo::spillSGPR(MachineBasicBlock::iterator MI, int Index,
+                               RegScavenger *RS, SlotIndexes *Indexes,
+                               LiveIntervals *LIS, bool OnlyToVGPR,
+                               bool SpillToPhysVGPRLane, bool NeedsCFI) const {
   SGPRSpillBuilder SB(*this, *ST.getInstrInfo(), isWave32, MI, Index, RS);
 
-  ArrayRef<SpilledReg> VGPRSpills = SB.MFI.getSGPRSpillToVGPRLanes(Index);
+  ArrayRef<SpilledReg> VGPRSpills =
+      SpillToPhysVGPRLane ? SB.MFI.getSGPRSpillToPhysicalVGPRLanes(Index)
+                          : SB.MFI.getSGPRSpillToVirtualVGPRLanes(Index);
   bool SpillToVGPR = !VGPRSpills.empty();
   if (OnlyToVGPR && !SpillToVGPR)
     return false;
@@ -1948,10 +1945,13 @@ bool SIRegisterInfo::spillSGPR(MachineBasicBlock::iterator MI,
 
 bool SIRegisterInfo::restoreSGPR(MachineBasicBlock::iterator MI, int Index,
                                  RegScavenger *RS, SlotIndexes *Indexes,
-                                 LiveIntervals *LIS, bool OnlyToVGPR) const {
+                                 LiveIntervals *LIS, bool OnlyToVGPR,
+                                 bool SpillToPhysVGPRLane) const {
   SGPRSpillBuilder SB(*this, *ST.getInstrInfo(), isWave32, MI, Index, RS);
 
-  ArrayRef<SpilledReg> VGPRSpills = SB.MFI.getSGPRSpillToVGPRLanes(Index);
+  ArrayRef<SpilledReg> VGPRSpills =
+      SpillToPhysVGPRLane ? SB.MFI.getSGPRSpillToPhysicalVGPRLanes(Index)
+                          : SB.MFI.getSGPRSpillToVirtualVGPRLanes(Index);
   bool SpillToVGPR = !VGPRSpills.empty();
   if (OnlyToVGPR && !SpillToVGPR)
     return false;
@@ -2097,7 +2097,7 @@ bool SIRegisterInfo::spillEmergencySGPR(MachineBasicBlock::iterator MI,
 /// handled.
 bool SIRegisterInfo::eliminateSGPRToVGPRSpillFrameIndex(
     MachineBasicBlock::iterator MI, int FI, RegScavenger *RS,
-    SlotIndexes *Indexes, LiveIntervals *LIS) const {
+    SlotIndexes *Indexes, LiveIntervals *LIS, bool SpillToPhysVGPRLane) const {
   bool NeedsCFI = false;
   switch (MI->getOpcode()) {
   case AMDGPU::SI_SPILL_S1024_CFI_SAVE:
@@ -2126,7 +2126,8 @@ bool SIRegisterInfo::eliminateSGPRToVGPRSpillFrameIndex(
   case AMDGPU::SI_SPILL_S96_SAVE:
   case AMDGPU::SI_SPILL_S64_SAVE:
   case AMDGPU::SI_SPILL_S32_SAVE:
-      return spillSGPR(MI, FI, RS, Indexes, LIS, true, NeedsCFI);
+    return spillSGPR(MI, FI, RS, Indexes, LIS, true, SpillToPhysVGPRLane,
+                     NeedsCFI);
   case AMDGPU::SI_SPILL_S1024_RESTORE:
   case AMDGPU::SI_SPILL_S512_RESTORE:
   case AMDGPU::SI_SPILL_S384_RESTORE:
@@ -2141,7 +2142,7 @@ bool SIRegisterInfo::eliminateSGPRToVGPRSpillFrameIndex(
   case AMDGPU::SI_SPILL_S96_RESTORE:
   case AMDGPU::SI_SPILL_S64_RESTORE:
   case AMDGPU::SI_SPILL_S32_RESTORE:
-    return restoreSGPR(MI, FI, RS, Indexes, LIS, true);
+    return restoreSGPR(MI, FI, RS, Indexes, LIS, true, SpillToPhysVGPRLane);
   default:
     llvm_unreachable("not an SGPR spill instruction");
   }
