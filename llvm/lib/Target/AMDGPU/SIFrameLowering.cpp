@@ -1303,7 +1303,6 @@ void SIFrameLowering::emitPrologue(MachineFunction &MF,
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
   const SIRegisterInfo &TRI = TII->getRegisterInfo();
-  const MCRegisterInfo *MCRI = MF.getMMI().getContext().getRegisterInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
 
   Register StackPtrReg = FuncInfo->getStackPtrOffsetReg();
@@ -1313,7 +1312,6 @@ void SIFrameLowering::emitPrologue(MachineFunction &MF,
   LivePhysRegs LiveRegs;
 
   MachineBasicBlock::iterator MBBI = MBB.begin();
-
   // DebugLoc must be unknown since the first instruction with DebugLoc is used
   // to determine the end of the prologue.
   DebugLoc DL;
@@ -1368,7 +1366,7 @@ void SIFrameLowering::emitPrologue(MachineFunction &MF,
     }
   }
 
-  if (HasFP) { // Needs stack realignment.
+  if (HasFP) {
     const unsigned Alignment = MFI.getMaxAlign().value();
 
     RoundedSize += Alignment;
@@ -1402,6 +1400,7 @@ void SIFrameLowering::emitPrologue(MachineFunction &MF,
     if (FramePtrRegScratchCopy)
       LiveRegs.removeReg(FramePtrRegScratchCopy);
   }
+
   // If we need a base pointer, set it up here. It's whatever the value of
   // the stack pointer is at this point. Any variable size objects will be
   // allocated after this, so we can still use the base pointer to reference
