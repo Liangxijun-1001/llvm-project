@@ -206,7 +206,7 @@ entry:
 ; CHECK: DW_TAG_subprogram
 ; CHECK-LABEL: DW_AT_name ("Test_Kern_StructTrivialCopyNoMove")
 ; CHECK: DW_TAG_formal_parameter
-; DW_AT_location (DW_OP_lit0, DW_OP_stack_value, DW_OP_lit6, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_shr, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_constu 0x5, DW_OP_LLVM_form_aspace_address, DW_OP_lit8, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_LLVM_offset)
+; DW_AT_location (DW_OP_lit0, DW_OP_stack_value, DW_OP_lit6, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_shr, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_constu 0x5, DW_OP_LLVM_form_aspace_address, DW_OP_lit4, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_LLVM_offset)
 
 ; Function Attrs: convergent mustprogress noinline norecurse nounwind optnone
 define dso_local amdgpu_kernel void @_Z33Test_Kern_StructTrivialCopyNoMove23StructTrivialCopyNoMove(i8 %.coerce) #2 !dbg !148 {
@@ -221,6 +221,8 @@ entry:
 
 ; CHECK: DW_TAG_subprogram
 ; CHECK-LABEL: DW_AT_name ("Test_Func_StructNoCopyNoMove")
+; FIXME: An existing bug in DwarfUnit::constructSubprogramArguments leads to
+; this formal parameter not appearing at all in the resulting Dwarf.
 ; CHECK-NOT: DW_TAG_formal_parameter
 
 ; Function Attrs: convergent mustprogress noinline nounwind optnone
@@ -507,10 +509,9 @@ entry:
 
 ; CHECK: DW_TAG_subprogram
 ; CHECK-LABEL: DW_AT_name ("Test_Func_Struct64Bytes")
-; FIXME: If no DBG_* instruction survives in the function through to AsmPrinter
-; the parameter variable is not mentioned in the output at all.
-; CHECK-NOT: DW_TAG_formal_parameter
-; CHECK-NOT: DW_AT_location (<empty>)
+; CHECK: DW_TAG_formal_parameter
+; FIXME: fix byval
+; CHECK: DW_AT_location (<empty>)
 
 ; Function Attrs: convergent mustprogress noinline nounwind optnone
 define dso_local void @_Z23Test_Func_Struct64Bytes12StructNBytesILj64EE(ptr addrspace(5) noundef byval(%struct.StructNBytes.7) align 1 %0) #0 !dbg !365 {
@@ -1317,6 +1318,7 @@ entry:
 ; CHECK: DW_TAG_formal_parameter
 ; CHECK: DW_AT_location (DW_OP_regx SGPR32_LO16, DW_OP_lit6, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_deref_size 0x4, DW_OP_swap, DW_OP_shr, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_constu 0x5, DW_OP_LLVM_form_aspace_address, DW_OP_constu 0x40, DW_OP_stack_value, DW_OP_deref_size 0x4, DW_OP_LLVM_offset)
 ; CHECK: DW_TAG_formal_parameter
+; FIXME: fix byval
 ; CHECK: DW_AT_location (<empty>)
 
 ; Function Attrs: convergent mustprogress noinline nounwind optnone

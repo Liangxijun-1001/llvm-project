@@ -23,22 +23,18 @@ define void @vector_reg_liverange_split() #0 {
 ; GFX90A-NEXT:    v_writelane_b32 v40, s30, 0
 ; GFX90A-NEXT:    ; implicit-def: $vgpr0
 ; GFX90A-NEXT:    v_writelane_b32 v40, s31, 1
-; GFX90A-NEXT:    ;;#ASMSTART
-; GFX90A-NEXT:    ; def s20
-; GFX90A-NEXT:    ;;#ASMEND
-; GFX90A-NEXT:    v_writelane_b32 v0, s20, 0
-; GFX90A-NEXT:    s_or_saveexec_b64 s[28:29], -1
-; GFX90A-NEXT:    v_accvgpr_write_b32 a32, v0
-; GFX90A-NEXT:    s_mov_b64 exec, s[28:29]
 ; GFX90A-NEXT:    s_getpc_b64 s[16:17]
 ; GFX90A-NEXT:    s_add_u32 s16, s16, foo@gotpcrel32@lo+4
 ; GFX90A-NEXT:    s_addc_u32 s17, s17, foo@gotpcrel32@hi+12
 ; GFX90A-NEXT:    s_load_dwordx2 s[16:17], s[16:17], 0x0
+; GFX90A-NEXT:    ;;#ASMSTART
+; GFX90A-NEXT:    ; def s20
+; GFX90A-NEXT:    ;;#ASMEND
+; GFX90A-NEXT:    v_writelane_b32 v0, s20, 0
+; GFX90A-NEXT:    v_accvgpr_write_b32 a32, v0
 ; GFX90A-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NEXT:    s_swappc_b64 s[30:31], s[16:17]
-; GFX90A-NEXT:    s_or_saveexec_b64 s[28:29], -1
 ; GFX90A-NEXT:    v_accvgpr_read_b32 v0, a32
-; GFX90A-NEXT:    s_mov_b64 exec, s[28:29]
 ; GFX90A-NEXT:    v_readlane_b32 s20, v0, 0
 ; GFX90A-NEXT:    ;;#ASMSTART
 ; GFX90A-NEXT:    ; use s20
