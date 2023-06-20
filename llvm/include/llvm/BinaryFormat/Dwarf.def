@@ -895,13 +895,13 @@ HANDLE_DW_OP(0xa9, reinterpret, 5, DWARF)
 HANDLE_DW_OP(0xe0, GNU_push_tls_address, 0, GNU)
 // Conflicting:
 // HANDLE_DW_OP(0xe0, HP_unknown, 0, HP)
-// HANDLE_DW_OP(0xe1, HP_is_value, 0, HP)
-// HANDLE_DW_OP(0xe2, HP_fltconst4, 0, HP)
-// HANDLE_DW_OP(0xe3, HP_fltconst8, 0, HP)
-// HANDLE_DW_OP(0xe4, HP_mod_range, 0, HP)
-// HANDLE_DW_OP(0xe5, HP_unmod_range, 0, HP)
-// HANDLE_DW_OP(0xe6, HP_tls, 0, HP)
-// HANDLE_DW_OP(0xe8, INTEL_bit_piece, 0, INTEL)
+HANDLE_DW_OP(0xe1, HP_is_value, 0, HP)
+HANDLE_DW_OP(0xe2, HP_fltconst4, 0, HP)
+HANDLE_DW_OP(0xe3, HP_fltconst8, 0, HP)
+HANDLE_DW_OP(0xe4, HP_mod_range, 0, HP)
+HANDLE_DW_OP(0xe5, HP_unmod_range, 0, HP)
+HANDLE_DW_OP(0xe6, HP_tls, 0, HP)
+HANDLE_DW_OP(0xe8, INTEL_bit_piece, 0, INTEL)
 
 // Extensions for WebAssembly.
 HANDLE_DW_OP(0xed, WASM_location, 0, WASM)
@@ -914,22 +914,6 @@ HANDLE_DW_OP(0xf8, PGI_omp_thread_num, 0, PGI)
 // Extensions for Fission proposal.
 HANDLE_DW_OP(0xfb, GNU_addr_index, 0, GNU)
 HANDLE_DW_OP(0xfc, GNU_const_index, 0, GNU)
-// Heterogeneous Debugging Extension defined at
-// https://llvm.org/docs/AMDGPUDwarfProposalForHeterogeneousDebugging.html.
-// These collide with some HP and PGI vendor extensions, but this ambiguity is
-// resolved by ensuring CIE augmentation strings and compilation unit
-// DW_AT_LLVM_augmentation strings include "[llvm:v0.0]".
-HANDLE_DW_OP(0xe1, LLVM_form_aspace_address, 0, LLVM)
-HANDLE_DW_OP(0xe2, LLVM_push_lane, 0, LLVM)
-HANDLE_DW_OP(0xe3, LLVM_offset, 0, LLVM)
-HANDLE_DW_OP(0xe4, LLVM_offset_uconst, 0, LLVM)
-HANDLE_DW_OP(0xe5, LLVM_bit_offset, 0, LLVM)
-HANDLE_DW_OP(0xe6, LLVM_call_frame_entry_reg, 0, LLVM)
-HANDLE_DW_OP(0xe7, LLVM_undefined, 0, LLVM)
-HANDLE_DW_OP(0xe8, LLVM_aspace_bregx, 0, LLVM)
-HANDLE_DW_OP(0xea, LLVM_piece_end, 0, LLVM)
-HANDLE_DW_OP(0xeb, LLVM_extend, 0, LLVM)
-HANDLE_DW_OP(0xec, LLVM_select_bit_piece, 0, LLVM)
 
 // DW_OP_LLVM_user has two operands:
 //   (1) An unsigned LEB128 "LLVM Vendor Extension Opcode".
@@ -948,6 +932,19 @@ HANDLE_DW_OP(0xe9, LLVM_user, 0, LLVM)
 // location stack or any of its values. It is defined as a placeholder for
 // testing purposes.
 HANDLE_DW_OP_LLVM_USEROP(0x0001, nop)
+// Heterogeneous Debugging Extension defined at
+// https://llvm.org/docs/AMDGPUDwarfProposalForHeterogeneousDebugging.html.
+HANDLE_DW_OP_LLVM_USEROP(0x0002, form_aspace_address)
+HANDLE_DW_OP_LLVM_USEROP(0x0003, push_lane)
+HANDLE_DW_OP_LLVM_USEROP(0x0004, offset)
+HANDLE_DW_OP_LLVM_USEROP(0x0005, offset_uconst)
+HANDLE_DW_OP_LLVM_USEROP(0x0006, bit_offset)
+HANDLE_DW_OP_LLVM_USEROP(0x0007, call_frame_entry_reg)
+HANDLE_DW_OP_LLVM_USEROP(0x0008, undefined)
+HANDLE_DW_OP_LLVM_USEROP(0x0009, aspace_bregx)
+HANDLE_DW_OP_LLVM_USEROP(0x000a, piece_end)
+HANDLE_DW_OP_LLVM_USEROP(0x000b, extend)
+HANDLE_DW_OP_LLVM_USEROP(0x000c, select_bit_piece)
 
 // DWARF languages.
 HANDLE_DW_LANG(0x0001, C89, 0, 2, DWARF)

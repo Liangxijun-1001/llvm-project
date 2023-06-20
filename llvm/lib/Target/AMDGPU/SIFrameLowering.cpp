@@ -75,6 +75,7 @@ createScaledCFAInPrivateWave(const GCNSubtarget &ST,
           << uint8_t(dwarf::DW_OP_shl)
           << uint8_t(dwarf::DW_OP_lit0 +
                      dwarf::DW_ASPACE_LLVM_AMDGPU_private_wave)
+          << uint8_t(dwarf::DW_OP_LLVM_user)
           << uint8_t(dwarf::DW_OP_LLVM_form_aspace_address);
 
   SmallString<20> CFIInst;
@@ -769,10 +770,11 @@ void SIFrameLowering::emitEntryFunctionPrologue(MachineFunction &MF,
     // of a literal location expression.
     static const char CFAEncodedInst[] = {
         dwarf::DW_CFA_def_cfa_expression,
-        3, // length
+        4, // length
         static_cast<char>(dwarf::DW_OP_lit0),
         static_cast<char>(dwarf::DW_OP_lit0 +
                           dwarf::DW_ASPACE_LLVM_AMDGPU_private_wave),
+        static_cast<char>(dwarf::DW_OP_LLVM_user),
         static_cast<char>(dwarf::DW_OP_LLVM_form_aspace_address)};
     buildCFI(MBB, I, DL,
              MCCFIInstruction::createEscape(
@@ -2136,6 +2138,7 @@ MachineInstr *SIFrameLowering::buildCFIForSGPRToVGPRSpill(
   SmallString<20> Block;
   raw_svector_ostream OSBlock(Block);
   encodeDwarfRegisterLocation(DwarfVGPR, OSBlock);
+  OSBlock << uint8_t(dwarf::DW_OP_LLVM_user);
   OSBlock << uint8_t(dwarf::DW_OP_LLVM_offset_uconst);
   encodeULEB128(Lane * SGPRByteSize, OSBlock);
 
@@ -2226,14 +2229,17 @@ MachineInstr *SIFrameLowering::buildCFIForVGPRToVMEMSpill(
   raw_svector_ostream OSBlock(Block);
   encodeDwarfRegisterLocation(DwarfVGPR, OSBlock);
   OSBlock << uint8_t(dwarf::DW_OP_swap);
+  OSBlock << uint8_t(dwarf::DW_OP_LLVM_user);
   OSBlock << uint8_t(dwarf::DW_OP_LLVM_offset_uconst);
   encodeULEB128(Offset, OSBlock);
+  OSBlock << uint8_t(dwarf::DW_OP_LLVM_user);
   OSBlock << uint8_t(dwarf::DW_OP_LLVM_call_frame_entry_reg);
   encodeULEB128(MCRI.getDwarfRegNum(
                     ST.isWave32() ? AMDGPU::EXEC_LO : AMDGPU::EXEC, false),
                 OSBlock);
   OSBlock << uint8_t(dwarf::DW_OP_deref_size);
   OSBlock << uint8_t(ST.getWavefrontSize() / 8);
+  OSBlock << uint8_t(dwarf::DW_OP_LLVM_user);
   OSBlock << uint8_t(dwarf::DW_OP_LLVM_select_bit_piece);
   encodeULEB128(VGPRLaneBitSize, OSBlock);
   encodeULEB128(ST.getWavefrontSize(), OSBlock);
