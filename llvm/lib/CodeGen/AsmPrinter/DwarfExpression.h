@@ -434,6 +434,15 @@ public:
   }
 };
 
+/// Small wrapper to encapsulate a DWARF operation with support for subops.
+struct DwarfOp {
+  uint8_t Opcode;
+  std::optional<unsigned> SubOpcode = std::nullopt;
+  DwarfOp(uint8_t Opcode) : Opcode(Opcode) {}
+  DwarfOp(uint8_t Opcode, unsigned SubOpcode)
+      : Opcode(Opcode), SubOpcode(SubOpcode) {}
+};
+
 class DwarfExprAST {
 protected:
   class Node {
@@ -486,7 +495,7 @@ protected:
     }
 
     size_t getChildrenCount() const;
-    std::optional<uint8_t> getEquivalentDwarfOp() const;
+    std::optional<DwarfOp> getEquivalentDwarfOp() const;
   };
 
   const AsmPrinter &AP;
@@ -549,8 +558,7 @@ protected:
   void emitSigned(int64_t SignedValue);
   void emitUnsigned(uint64_t UnsignedValue);
   virtual void emitDwarfData1(uint8_t Data1Value) = 0;
-  virtual void emitDwarfOp(uint8_t DwarfOpValue,
-                           const char *Comment = nullptr) = 0;
+  virtual void emitDwarfOp(DwarfOp Op, const char *Comment = nullptr) = 0;
   virtual void emitDwarfSigned(int64_t SignedValue) = 0;
   virtual void emitDwarfUnsigned(uint64_t UnsignedValue) = 0;
   virtual void emitDwarfAddr(const MCSymbol *Sym) = 0;
@@ -573,7 +581,7 @@ class DebugLocDwarfExprAST final : DwarfExprAST {
   ByteStreamer &getActiveStreamer();
 
   void emitDwarfData1(uint8_t Data1Value) override;
-  void emitDwarfOp(uint8_t DwarfOpValue, const char *Comment = nullptr) override;
+  void emitDwarfOp(DwarfOp Op, const char *Comment = nullptr) override;
   void emitDwarfSigned(int64_t SignedValue) override;
   void emitDwarfUnsigned(uint64_t UnsignedValue) override;
   void emitDwarfAddr(const MCSymbol *Sym) override;
@@ -614,7 +622,7 @@ class DIEDwarfExprAST final : DwarfExprAST {
   DIELoc &getActiveDIE();
 
   void emitDwarfData1(uint8_t Data1Value) override;
-  void emitDwarfOp(uint8_t DwarfOpValue, const char *Comment = nullptr) override;
+  void emitDwarfOp(DwarfOp Op, const char *Comment = nullptr) override;
   void emitDwarfSigned(int64_t SignedValue) override;
   void emitDwarfUnsigned(uint64_t UnsignedValue) override;
   void emitDwarfAddr(const MCSymbol *Sym) override;

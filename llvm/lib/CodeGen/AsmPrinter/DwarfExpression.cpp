@@ -773,8 +773,8 @@ size_t DwarfExprAST::Node::getChildrenCount() const {
       Element);
 }
 
-std::optional<uint8_t> DwarfExprAST::Node::getEquivalentDwarfOp() const {
-  using R = std::optional<uint8_t>;
+std::optional<DwarfOp> DwarfExprAST::Node::getEquivalentDwarfOp() const {
+  using R = std::optional<DwarfOp>;
   return std::visit(
       makeVisitor(
           [](DIOp::Arg) -> R { return std::nullopt; },
@@ -789,8 +789,13 @@ std::optional<uint8_t> DwarfExprAST::Node::getEquivalentDwarfOp() const {
           [](DIOp::Read) -> R { return std::nullopt; },
           [](DIOp::Reinterpret) -> R { return std::nullopt; },
           [](DIOp::Add) -> R { return dwarf::DW_OP_plus; },
-          [](DIOp::BitOffset) -> R { return dwarf::DW_OP_LLVM_bit_offset; },
-          [](DIOp::ByteOffset) -> R { return dwarf::DW_OP_LLVM_offset; },
+          [](DIOp::BitOffset) -> R {
+            return DwarfOp{dwarf::DW_OP_LLVM_user,
+                           dwarf::DW_OP_LLVM_bit_offset};
+          },
+          [](DIOp::ByteOffset) -> R {
+            return DwarfOp{dwarf::DW_OP_LLVM_user, dwarf::DW_OP_LLVM_offset};
+          },
           [](DIOp::Div) -> R { return dwarf::DW_OP_div; },
           [](DIOp::Mul) -> R { return dwarf::DW_OP_mul; },
           [](DIOp::Shl) -> R { return dwarf::DW_OP_shl; },
@@ -1021,7 +1026,7 @@ void DwarfExprAST::lowerDIOpDeref(DwarfExprAST::Node *OpNode) {
   emitDwarfData1(PointerSizeInBytes);
   emitDwarfOp(dwarf::DW_OP_constu);
   emitDwarfUnsigned(*PointerDWARFAddrSpace);
-  emitDwarfOp(dwarf::DW_OP_LLVM_form_aspace_address);
+  emitDwarfOp({dwarf::DW_OP_LLVM_user, dwarf::DW_OP_LLVM_form_aspace_address});
 
   OpNode->setIsLowered();
   // FIXME(KZHURAVL): Is the following result type correct?
@@ -1112,10 +1117,10 @@ void DwarfExprAST::lowerBitOrByteOffset(DwarfExprAST::Node *OpNode) {
 
   readToValue(OpNode->getChildren()[1].get(), /*NeedsSwap=*/false);
 
-  std::optional<uint8_t> DwarfOp = OpNode->getEquivalentDwarfOp();
-  assert(DwarfOp.has_value() && "Expected equivalent dwarf operation");
+  std::optional<DwarfOp> Op = OpNode->getEquivalentDwarfOp();
+  assert(Op.has_value() && "Expected equivalent dwarf operation");
 
-  emitDwarfOp(DwarfOp.value());
+  emitDwarfOp(Op.value());
 
   OpNode->setIsLowered();
   // FIXME(KZHURAVL): Is the following result type correct?
@@ -1145,10 +1150,10 @@ void DwarfExprAST::lowerMathOp(DwarfExprAST::Node *OpNode) {
     readToValue(ChildOpNode.get(), /*NeedsSwap=*/true);
   }
 
-  std::optional<uint8_t> DwarfOp = OpNode->getEquivalentDwarfOp();
-  assert(DwarfOp.has_value() && "Expected equivalent dwarf operation");
+  std::optional<DwarfOp> Op = OpNode->getEquivalentDwarfOp();
+  assert(Op.has_value() && "Expected equivalent dwarf operation");
 
-  emitDwarfOp(DwarfOp.value());
+  emitDwarfOp(Op.value());
   emitDwarfOp(dwarf::DW_OP_stack_value);
 
   OpNode->setIsLowered();
@@ -1210,11 +1215,15 @@ void DebugLocDwarfExprAST::emitDwarfData1(uint8_t Data1Value) {
   getActiveStreamer().emitInt8(Data1Value, Twine(Data1Value));
 }
 
-void DebugLocDwarfExprAST::emitDwarfOp(uint8_t DwarfOpValue, const char *Comment) {
+void DebugLocDwarfExprAST::emitDwarfOp(DwarfOp Op, const char *Comment) {
   getActiveStreamer().emitInt8(
-      DwarfOpValue, Comment ? Twine(Comment) + " " +
-                                  dwarf::OperationEncodingString(DwarfOpValue)
-                            : dwarf::OperationEncodingString(DwarfOpValue));
+      Op.Opcode,
+      Comment ? Twine(Comment) + " " + dwarf::OperationEncodingString(Op.Opcode)
+              : dwarf::OperationEncodingString(Op.Opcode));
+  if (!Op.SubOpcode)
+    return;
+  getActiveStreamer().emitInt8(*Op.SubOpcode, dwarf::SubOperationEncodingString(
+                                                  Op.Opcode, *Op.SubOpcode));
 }
 
 void DebugLocDwarfExprAST::emitDwarfSigned(int64_t SignedValue) {
@@ -1240,8 +1249,11 @@ void DIEDwarfExprAST::emitDwarfData1(uint8_t Data1Value) {
   CU.addUInt(getActiveDIE(), dwarf::DW_FORM_data1, Data1Value);
 }
 
-void DIEDwarfExprAST::emitDwarfOp(uint8_t DwarfOpValue, const char *Comment) {
-  CU.addUInt(getActiveDIE(), dwarf::DW_FORM_data1, DwarfOpValue);
+void DIEDwarfExprAST::emitDwarfOp(DwarfOp Op, const char *Comment) {
+  CU.addUInt(getActiveDIE(), dwarf::DW_FORM_data1, Op.Opcode);
+  if (!Op.SubOpcode)
+    return;
+  CU.addUInt(getActiveDIE(), dwarf::DW_FORM_data1, *Op.SubOpcode);
 }
 
 void DIEDwarfExprAST::emitDwarfSigned(int64_t SignedValue) {

@@ -1229,8 +1229,16 @@ void DwarfDebug::beginModule(Module *M) {
   DebugLocs.setSym(Asm->createTempSymbol("loclists_table_base"));
 
   for (DICompileUnit *CUNode : M->debug_compile_units()) {
-    if (CUNode->getImportedEntities().empty() &&
-        CUNode->getEnumTypes().empty() && CUNode->getRetainedTypes().empty() &&
+    // FIXME: Move local imported entities into a list attached to the
+    // subprogram, then this search won't be needed and a
+    // getImportedEntities().empty() test should go below with the rest.
+    bool HasNonLocalImportedEntities = llvm::any_of(
+        CUNode->getImportedEntities(), [](const DIImportedEntity *IE) {
+          return !isa<DILocalScope>(IE->getScope());
+        });
+
+    if (!HasNonLocalImportedEntities && CUNode->getEnumTypes().empty() &&
+        CUNode->getRetainedTypes().empty() &&
         CUNode->getGlobalVariables().empty() && CUNode->getMacros().empty() &&
         !isHeterogeneousDebug(*M))
       continue;
@@ -1966,7 +1974,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
       }
     }
 
-    // Do not emit location lists if .debug_loc secton is disabled.
+    // Do not emit location lists if .debug_loc section is disabled.
     if (!useLocSection())
       continue;
 
@@ -2133,7 +2141,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     return;
   }
 
-  // Collect info for retained nodes.
+  // Collect info for variables/labels that were optimized out.
   for (const DINode *DN : SP->getRetainedNodes()) {
     const auto *LS = getRetainedNodeScope(DN);
     if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
@@ -2760,7 +2768,6 @@ void DwarfDebug::emitDebugLocEntry(ByteStreamer &Streamer,
   for (const auto &Op : Expr) {
     assert(Op.getCode() != dwarf::DW_OP_const_type &&
            "3 operand ops not yet supported");
-    assert(!Op.getSubCode() && "SubOps not yet supported");
     Streamer.emitInt8(Op.getCode(), Comment != End ? *(Comment++) : "");
     Offset++;
     for (unsigned I = 0; I < Op.getDescription().Op.size(); ++I) {
