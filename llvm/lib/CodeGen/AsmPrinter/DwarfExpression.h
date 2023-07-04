@@ -562,6 +562,8 @@ protected:
   virtual void emitDwarfSigned(int64_t SignedValue) = 0;
   virtual void emitDwarfUnsigned(uint64_t UnsignedValue) = 0;
   virtual void emitDwarfAddr(const MCSymbol *Sym) = 0;
+  virtual void emitDwarfOpAddrx(unsigned Index) = 0;
+  virtual void emitDwarfLabelDelta(const MCSymbol *Hi, const MCSymbol *Lo) = 0;
 
 public:
   DwarfExprAST(
@@ -585,6 +587,8 @@ class DebugLocDwarfExprAST final : DwarfExprAST {
   void emitDwarfSigned(int64_t SignedValue) override;
   void emitDwarfUnsigned(uint64_t UnsignedValue) override;
   void emitDwarfAddr(const MCSymbol *Sym) override;
+  void emitDwarfOpAddrx(unsigned Index) override;
+  void emitDwarfLabelDelta(const MCSymbol *Hi, const MCSymbol *Lo) override;
 
   DebugLocDwarfExprAST(
       const AsmPrinter &AP, const TargetRegisterInfo *TRI, DwarfCompileUnit &CU,
@@ -626,6 +630,8 @@ class DIEDwarfExprAST final : DwarfExprAST {
   void emitDwarfSigned(int64_t SignedValue) override;
   void emitDwarfUnsigned(uint64_t UnsignedValue) override;
   void emitDwarfAddr(const MCSymbol *Sym) override;
+  void emitDwarfOpAddrx(unsigned Index) override;
+  void emitDwarfLabelDelta(const MCSymbol *Hi, const MCSymbol *Lo) override;
 
   DIEDwarfExprAST(
       const AsmPrinter &AP, const TargetRegisterInfo *TRI, DwarfCompileUnit &CU,
